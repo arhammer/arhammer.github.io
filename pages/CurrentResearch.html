@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+	<!-- HEAD OF DOCUMENT -->
+	<head>
+		<!-- META DATA -->
+		<meta charset="UTF-8">
+		<!-- Set viewport to be width of device (mobile friendly) -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		<meta name="author" content="Andy Hammer">
+		<meta name="keywords" content="research, verification, security protocols, MPC, multi-party computation">
+		<!-- STYLE SHEET -->
+		<link rel="stylesheet" href="../style.css">
+		<!-- TITLE OF PAGE -->
+		<title>
+		A. Hammer | Current Research
+		</title>
+	</head>
+	
+	<!-- BODY OF DOCUMENT -->
+	<body>
+		<!-- NAVIGATION BAR -->
+		<div class="nav bar">
+			<!-- Navigation Bar Header -->
+			<header style="text-align: center; font-size: xx-large">
+				<strong>ARH</strong>
+			</header>
+			<!-- Links to other pages -->
+			<ul class="nav-links">
+				<nav>
+					<!-- Home page -->
+					<li><a href="../index.html">Home</a></li>
+					<!-- Current Research -->
+					<li><a href="CurrentResearch.html">Current Research</a></li>
+					<!-- Publications -->
+					<li><a href="Publications.html">Publications</a></li>
+					<!-- Tutorials -->
+					<li><a href="Tutorials.html">Tutorials</a></li>
+					<!-- Paper recommendations -->
+					<li><a href="Papers.html">Paper Recommendations</a></li>
+					<!-- At some point, insert link to personal website -->
+				</nav>
+			</ul>
+		</div>
+		
+		<!-- CONTENT OF PAGE -->
+		<div class="nav content">
+			
+			<!-- Section with content -->
+			<div class="page project">
+				<h2>Verification of Secure Multiparty Computation Deployments with Domain Context</h2>
+				<h4>Andy Hammer, Eunsuk Kang, Fraser Brown</h4>
+				<h5>formal verification, secure multiparty computation</h5>
+				<p>
+				Secure multiparty computation (MPC) is a cryptographic process that allows for mathematical computation over masked and unknown inputs.
+				MPC deployments are used in a variety of areas, including medical and economic research, as well as cryptocurrencies and digital key wallets.
+				However, many MPC implementation (including those implemented by MPC cryptographers) have security gaps and bugs.
+				Even when implementations are theoretically secure, they can still be crippled by the domain they are deployed in - the context of the deployment as well the hardware infrastructure the computation runs on.
+				While there has been much work in proving theoretical MPC protocols, as well as formal models for MPC compillers, there is little work in formally verifying MPC.
+				In this work, we create formal models of different MPC protocols, and include the hardware infrastructure context within the model to identify security vulnerabilities.
+				This allows for identification of security vulnerabilities that exist due to hardware configurations that cannot be reasoned about during cryptographic proofs.
+				</p>
+			</div>
+		</div>
+	</body>
+</html>
