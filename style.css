@@ -10,11 +10,11 @@
 	--palette-second-dark: #FFDEAC;
 	--palette-second-medium: #FFEFD6;
 	--palette-second-light: white;
-	overflow: hidden;
 }
 
 html {
 	font-family: Georgia;
+	background: var(--palette-second-dark);
 }
 
 /* links for non-navigation links */
@@ -51,7 +51,7 @@ div.nav {
 
 /* Width of page */
 div.nav.content {
-	width: 85%;
+	width: 82%;
 	background: var(--palette-second-dark);
 }
 
@@ -171,6 +171,10 @@ div.pubs tr:hover {
 /* paper recommendation settings */
 div.recc h4 {
 	margin: 0% 0% 0% 1%;
+}
+
+div.recc {
+	margin-top: 1%
 }
 
 div.recc p {
