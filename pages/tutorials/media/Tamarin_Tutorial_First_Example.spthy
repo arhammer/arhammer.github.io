@@ -1,0 +1,47 @@
+theory FirstExample begin
+	builtins: hashing, asymmetric-encryption
+	
+	rule Register_pk:
+		[ Fr(~ltk) ] --> [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+	
+	rule Get_pk:
+		[ !Pk(Owner, pubkey) ] --> [ Out(pubkey) ]
+	
+	rule Reveal_Ltk:
+			[ !Ltk(A, ltk) ] --[ LtkReveal(A) ]-> [ Out(ltk) ]
+	
+	rule C_Step_1:
+		[ Fr(~k), !Pk($S, pks)] --> [ Client_1($S, ~k), Out(aenc(~k, pks) )]
+	
+	rule C_Step_2:
+		[ Client_1(S, k), In( h(k) )] --[ SessKeyC(S, k) ]-> []
+	
+	rule S_Step_1:
+		[ !Ltk($S, ~ltkS), In( request )] --[ AnswerRequest($S, adec(request, ~ltkS)) ]-> [ Out( h(adec(request, ~ltkS)) ) ]
+	
+	lemma Sanity_Reveal_Occurs: exists-trace "Ex Cli #t. LtkReveal(Cli)@t"
+	
+	lemma Client_session_key_secrecy:
+		all-traces
+		"not ( Ex Serv key #i #j.
+			SessKeyC(Serv, key)@i
+			& K(key)@j
+			& not( Ex #r. LtkReveal(Serv)@r )
+		)"
+		
+	lemma Client_Auth:
+		all-traces
+		"All Serv sec #i. SessKeyC(Serv, sec)@i
+		==> (
+			(Ex #a. AnswerRequest(Serv, sec)@a)
+			|
+			(Ex #r. LtkReveal(Serv)@r & #r<#i)
+		)"
+		
+	lemma Sanity_Session_Occurs:
+		exists-trace
+		"Ex Serv sec #i. (
+			SessKeyC(Serv, sec)@i
+			& not( Ex #r. LtkReveal(S)@r )
+		)"
+end
