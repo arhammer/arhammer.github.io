@@ -8,7 +8,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta http-equiv="X-UA-Compatible" content="ie=edge">
 		<meta name="author" content="Andy Hammer">
-		<meta name="keywords" content="tamarin, tutorial, formal verification, security protocol">
+		<meta name="keywords" content="tamarin, tutorial, formal verification, security protocol, tamarin-prover">
 		<!-- STYLE SHEET -->
 		<link rel="stylesheet" href="../../style.css">
 		<!-- TITLE OF PAGE -->
@@ -33,7 +33,12 @@
 					<li style="font-size:large">Navigation</li>
 					<ul style="list-style-type: disc;">
 						<li><a href="#top-of-page">Introduction</a></li>
+						<li><a href="#first-example">First Example</a></li>
 						<li><a href="#language">Language</a></li>
+						<li><a href="#lemmas">Lemmas</a></li>
+						<li><a href="#functions">Functions</a></li>
+						<li><a href="#oracle">Oracle</a></li>
+						<li><a href="#macros">Macros</a></li>
 					</ul>
 				</nav>
 			</ul>
@@ -45,17 +50,607 @@
 			<!-- Header with page information -->
 			<header class="page title">
 				<div class="pageInfo">
-					<h1 id="top-of-page">Introduction to <a href="https://tamarin-prover.com">Tamarin</a></h1>
-					<p>This page is still under construction and incomplete.</p>
-					<p>Tamarin is a security protocol verification tool to identify attacks from adversaries as well as prove properties about protocols.</p>
+					<h1 id="top-of-page">Introduction to Tamarin</h1>
+					<p>
+						Tamarin is a security protocol verification tool used to identify attacks from adversaries that can leak information during the execution of said protocol.
+						Tamarin uses symbolic reasoning and multiset term rewriting to automatically construct proofs that show a protocol is safe against adversaries for an arbitrary amount of instances of said protocol.
+					</p>
+					<p>
+						Tamarin has a full guide and manual available on
+						<a href="https://tamarin-prover.com">their website</a>
+						, which is good introduction to the tool and extensive behavior.
+						This page serves as additional information that would have helped me when I first began utilizing the tool as well, and is meant only to be supplemental to the offical manual.
+					</p>
 				</div>
 			</header>
 			
 			<!-- Section with content -->
 			<div class="page tamarin">
+				<h2 id="first-example">First Example</h2>
+				<p>
+					This tutorial will use the same example that the official manual uses.
+					However, this example will go a lot slower, and, in general, include more details for the less cryptographically minded.
+					If you are already familiar with inference rules and multiset term rewriting, using the official manual or skipping this section is suggested.
+				</p>
+				<p>
+					A full copy of the protocol written in the section can be found <a href="media/Tamarin_Tutorial_First_Example.spthy" target="_blank">here</a>, ready to run.
+				</p>
+				<!-- Initial Model Details -->
+				<h3>Starting the model</h3>
+				<p>
+					First, let's set up the file outline.
+					We begin by naming the theory we are going to describe in a file named
+					<code>TamarinExample.spthy</code>.
+					Tamarin comments use <code>//</code> or <code>/* */</code>, so I use those to show where the protocol itself is written.
+					<pre>
+						<code>
+		theory FirstExample begin
+			/* */
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					This is the theory we will write:
+				</p>
+				<p>
+					<math xmlns="http://www.w3.org/1998/Math/MathML"><mtable><mtr><mtd><mi>C</mi><mo>&#x2192;</mo><mi>S</mi><mo>:</mo></mtd><mtd><mo form="prefix" stretchy="false">{</mo><mi mathvariant="normal">k</mi><msub><mo>}</mo><mrow><mi>p</mi><mi>k</mi><mi>s</mi></mrow></msub></mtd></mtr><mtr><mtd><mi>S</mi><mo>&#x2192;</mo><mi>C</mi><mo>:</mo></mtd><mtd><mi>h</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></mtd></mtr></mtable></math>
+				</p>
+				<p>
+					First, <math>C</math> sends <math>S</math> an encrypted value, <math>k</math> (encrypted with key <math>pks</math>).
+					<math>S</math> then returns the hash of the value to confirm <math>k</math> was correctly received.
+					To begin writing this theory, we first need to write a system to create encryption keys, use them, and reveal them.
+				</p>
+				<!-- Key Registration in Model -->
+				<h3>Key Registration</h3>
+				<p>
+					Let's begin with the registration of a new key.
+					<pre>
+						<code>
+		theory FirstExample begin
+	+		builtins: hashing, asymmetric-encryption
+			
+	+		rule Register_pk:
+	+			[ Fr(~ltk) ]
+	+		-->
+	+			[ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					What do these changes do?
+					<ul>
+						<li>Since we know we'll use both hashing, and asymmetric encryption; since Tamarin has built in libraries for both of these, we include them under the <code>builtins</code> section.</li>
+						<li>We define a new <code>rule</code> that lets us write a new inference rule about the system.</li>
+						<li>The <code>[ LHS ] --> [ RHS ]</code> is the inference rule itself. The LHS is the assumption we are making about the system, and if satisify the assumption, we can draw the conclusions in RHS.</li>
+						<li><code>Fr(~ltk)</code> assumes the generation of a new variable, <code>~ltk</code>, which is unused in previous rules. Generating fresh variables can be done anytime, and are abstracted away from concrete values. This means they can represent keys or secrets in a protocol.</li>
+						<li><code>!Ltk($A, ~ltk)</code> is a <strong>fact</strong> in Tamarin. Fact names are determined by the model writer, and represent accessible peices of knowledge that protocol parties or adversaries can obtain. In this case, we name the fact <code>!Ltk</code> to represent a long-term private key for the protocol's execution and we associate it with the owner, <code>$A</code>.</li>
+						<li>In Tamarin, the <code>!</code> represents persistance - <code>!Ltk</code> can be assumed again and again, without any changes. If the <code>!</code> were not present, a new key would be generated everytime the model referenced this fact.</li>
+						<li>The <code>$</code> in <code>$A</code> indicates publicity. <code>A</code> is a public value, which can be accessed and seen by any party, adversary or not.</li>
+						<li>The fact <code>!Pk($A, pk(~ltk))</code> associates <code>$A</code> with the public value of <code>~ltk</code>. The <code>pk( KEY )</code> is a function defined in the asymmetric encryption library, and represents the public key for other parties to use.</li>
+						<li>So, <strong>in summary</strong>, this rule generates a new key, and uses two facts to associate the private key and it's public counterpart with the owner of the key.</li>
+					</ul>
+				</p>
+				<!-- Publishing key in model -->
+				<p>
+					Let's look at the next section of the key creation, publishing the public version for others to use and with which others encrypt messages.
+					<pre>
+						<code>
+		theory FirstExample begin
+			builtins: hashing, asymmetric-encryption
+			
+			rule Register_pk:
+				[ Fr(~ltk) ]
+			-->
+				[ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+			
+	+		rule Get_pk:
+	+			[ !Pk(Owner, pubkey) ]
+	+		-->
+	+			[ Out(pubkey) ]
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					What about these changes? What do they do?
+					<ul>
+						<li>Here, we assume <code>!Pk(Owner, pubkey)</code> - we are given the public key fact that associates some <code>Owner</code> with some <code>pubkey</code>.</li>
+						<li>Given this fact, we output <code>pubkey</code>. The <code>Out</code> fact is a Tamarin-reserved fact that publishes the given value on an unsecured network, where adversaries and parties can access the given value.</li>
+						<li><code>Out(value)</code>'s corresponding fact is <code>In(value)</code>, which any fact can assume, and is listening on the unsecured network for published messages.</li>
+						<li>Additionally, note that in rule <em>Register_pk</em>, we use <code>~ltk</code> and <code>$A</code>, and <em>Get_pk</em> does not use <code>~</code> or <code>$</code>. In Tamarin, special characters are considered to be part of the variable, so in <em>Register_pk</em>, <code>ltk</code> is different from <code>~ltk</code>.</li>
+					</ul>
+				</p>
+				<!-- Revealing Key in Model -->
+				<p>
+					Let's add the last part of the key - revealing it to everybody after it's not being used anymore.
+					<pre>
+						<code>
+		theory FirstExample begin
+			builtins: hashing, asymmetric-encryption
+			
+			rule Register_pk:
+				[ Fr(~ltk) ]
+			-->
+				[ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+			
+			rule Get_pk:
+				[ !Pk(Owner, pubkey) ]
+			-->
+				[ Out(pubkey) ]
+			
+	+		rule Reveal_Ltk:
+	+			[ !Ltk(A, ltk) ]
+	+		--[ LtkReveal(A) ]->
+	+			[ Out(ltk) ]
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					How do these changes work?
+					<ul>
+						<li>Given the long-term key, this rule publishes the private key, very similar to the rule <em>Get_pk</em>.</li>
+						<li>One noticable difference is the inference arrow. Instead of <code>--></code>, we use <code>--[ LtkReveal(A) ]-></code>. This is an <strong>Action Fact</strong>. Action facts annotate the traces construted by the inference rules, and allow for reasoning over traces in the protocol. This action fact has no impact on the rule, but lets us see in a trace that the key has been revealed.</li>
+					</ul>
+				</p>
+				<!-- First Lemma -->
+				<h3>First Lemma</h3>
+				<p>
+					<strong>Lemma</strong>s in Tamarin describe desired behavior of the model, which can then be proven or counter-examples identified.
+					This is where the action facts start to be utilized.
+					For details on how the proofs in Tamarin actually work, see the official tamarin manual.
+					Right now, we are going to write a toy, sanity lemma for us to visualize how Tamarin works.
+					<pre>
+						<code>
+		theory FirstExample begin
+			builtins: hashing, asymmetric-encryption
+		
+			rule Register_pk:
+				[ Fr(~ltk) ]
+			-->
+				[ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+			
+			rule Get_pk:
+					[ !Pk(Owner, pubkey) ]
+			-->
+				[ Out(pubkey) ]
+			
+			rule Reveal_Ltk:
+				[ !Ltk(A, ltk) ]
+			--[ LtkReveal(A) ]->
+				[ Out(ltk) ]
+			
+	+		lemma Sanity_Reveal_Occurs:
+	+			exists-trace
+	+			"Ex Cli #t. LtkReveal(Cli)@t"
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					How does this lemma work?
+					<ul>
+						<li>The <code>exists-trace</code> indicates that the lemma should search for at least one instance that satisfies the following property. Otherwise, <code>all-traces</code> can be used, which checks that every possible trace satisfies the property. If neither are specified, <code>all-traces</code> is defaulted to.</li>
+						<li>In English, the property in quotes states "There exists a client and timestamp t such that LtkReveal(client) occurs at time t". Because Tamarin does not have a type system, it is up to the modeler to keep track of the types in facts and lemmas.</li>
+						<li>The <code>#</code> specifies that <code>t</code> is a timestamp, and when used, must be proceeded by a <code>#</code> or <code>@</code>.</li>
+						<li>
+							Using the interactive Tamarin prover, we can automatically prove this lemma very easily.
+							If Tamarin is installed correctly, we can run "<code>tamarin-prover interactive &lt;directory/file&gt;</code>" and navigate on a web browser to "<code>localhost:3001</code>". We then select the theory, and can see the different options to begin the proof.
+							<br><img src="media/Initial_Lemma.png" width=50%>
+						</li>
+						<li>Here, we can press "a" and use the default heuristic to prove the lemma.
+						The trace Tamarin finds is shown here:
+							<br><img src="media/Register_pk.png" width=15%><br>
+						As a brief overview of how the prover works, Tamarin starts with the possible cases for the <code>LtkReveal</code>, and works backwards to find sources that satisfy the trace.
+						Here, we can see that Tamarin starts with the inference rule with <code>LtkReveal(A)</code> and searches for a source for <code>!Ltk($A, ~ltk)</code>.
+						Since it finds <code>Register_pk</code> as the source, it attempts to find sources for <code>Register_pk</code>.
+						However, since <code>Register_pk</code> only requires a fresh nonce, and those do not need sources, it has completed it's search, and returns the successful trace.
+						</li>
+					</ul>
+				</p>
+			<h3>Client Protocol</h3>
+				<!-- Client protocol step 1 -->
+				<p>
+					Let's move on to modeling the client interaction portion of the protocol, starting with the first message: 
+					<math xmlns="http://www.w3.org/1998/Math/MathML"><mtable><mtr><mtd><mi>C</mi><mo>&#x2192;</mo><mi>S</mi><mo>:</mo></mtd><mtd><mo form="prefix" stretchy="false">{</mo><mi mathvariant="normal">k</mi><msub><mo>}</mo><mrow><mi>p</mi><mi>k</mi><mi>s</mi></mrow></msub></mtd></mtr></mtable></math>
+					<pre>
+						<code>
+		theory FirstExample begin
+			builtins: hashing, asymmetric-encryption
+			
+			rule Register_pk:
+				[ Fr(~ltk) ]
+			-->
+				[ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+			
+			rule Get_pk:
+				[ !Pk(Owner, pubkey) ]
+			-->
+				[ Out(pubkey) ]
+			
+			rule Reveal_Ltk:
+				[ !Ltk(A, ltk) ]
+			--[ LtkReveal(A) ]->
+				[ Out(ltk) ]
+			
+	+		rule C_Step_1:
+	+			[ Fr(~k)
+	+			, !Pk($S, pks)
+	+			]
+	+		-->
+	+			[ Client_1($S, ~k)
+	+			, Out(aenc(~k, pks) )
+	+			]
+			
+			lemma Sanity_Reveal_Occurs:
+				exists-trace
+				"Ex Cli #t. LtkReveal(Cli)@t"
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					<ul>
+						<li>Here, the client generates the secret they wish to send to the server, and obtains server's private key, using techniques from earlier.</li>
+						<li>The client uses <code>Out(aenc(~k, pks))</code> to encrypt the message (using a fucntion from asymmetric-encryption), and output on the network.</li>
+						<li>Lastly, we have the fact <code>Client_1($S, ~k)</code>. This fact let's us "save" the information for another inference rule. Since there is no <code>!</code>, it can only be consumed once.</li>
+					</ul>
+				</p>
+				<!-- Client protocol step 2 -->
+				<p>
+					Let's add the second message of the protocol: <math xmlns="http://www.w3.org/1998/Math/MathML"><mtable><mtr><mtd><mi>S</mi><mo>&#x2192;</mo><mi>C</mi><mo>:</mo></mtd><mtd><mi>h</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></mtd></mtr></mtable></math>
+					<pre>
+						<code>
+		theory FirstExample begin
+			builtins: hashing, asymmetric-encryption
+			
+			rule Register_pk:
+				[ Fr(~ltk) ]
+			-->
+				[ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+			
+			rule Get_pk:
+				[ !Pk(Owner, pubkey) ]
+			-->
+				[ Out(pubkey) ]
+			
+			rule Reveal_Ltk:
+				[ !Ltk(A, ltk) ]
+			--[ LtkReveal(A) ]->
+				[ Out(ltk) ]
+			
+			rule C_Step_1:
+				[ Fr(~k)
+				, !Pk($S, pks)
+				]
+			-->
+				[ Client_1($S, ~k)
+				, Out(aenc(~k, pks) )
+				]
+			
+	+		rule C_Step_2:
+	+			[ Client_1(S, k)
+	+			, In( h(k) )
+	+			]
+	+		--[ SessKeyC(S, k) ]->
+	+			[]
+			
+			lemma Sanity_Reveal_Occurs:
+				exists-trace
+				"Ex Cli #t. LtkReveal(Cli)@t"
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					<ul>
+						<li>We reuse the fact we stored earlier as <code>Client_1($S, ~k)</code>. When this inference rule is used during a proof, only one occurance of the <code>Client_1</code> fact can happen in a trace, because it is not persistant.</li>
+						<li>We also intake the hash of the same key we generated earlier using <code>In(h(k))</code>.</li>
+						<li>After this, the client's role in the protocol is done, so we draw no conclusion on the right hand side.</li>
+						<li>Lastly, we annotate this with the action fact <code>SessKeyC(S,k)</code> so we can reason over the client sending the message in future lemmas.</li>
+					</ul>
+				</p>
+				<!-- Server protocol -->
+				<p>
+					To finish this model off, we just need to model the server that handles incoming requests and outputs the hash.
+					<pre>
+						<code>
+		theory FirstExample begin
+			builtins: hashing, asymmetric-encryption
+			
+			rule Register_pk:
+				[ Fr(~ltk) ]
+			-->
+				[ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+			
+			rule Get_pk:
+				[ !Pk(Owner, pubkey) ]
+			-->
+				[ Out(pubkey) ]
+			
+			rule Reveal_Ltk:
+				[ !Ltk(A, ltk) ]
+			--[ LtkReveal(A) ]->
+				[ Out(ltk) ]
+			
+			rule C_Step_1:
+				[ Fr(~k)
+				, !Pk($S, pks)
+				]
+			-->
+				[ Client_1($S, ~k)
+				, Out(aenc(~k, pks) )
+				]
+			
+			rule C_Step_2:
+				[ Client_1(S, k)
+				, In( h(k) )
+				]
+			--[ SessKeyC(S, k) ]->
+				[]
+			
+	+		rule S_Step_1:
+	+			[ !Ltk($S, ~ltkS)
+	+			, In( request )
+	+			]
+	+		--[ AnswerRequest($S, adec(request, ~ltkS)) ]->
+	+			[ Out( h(adec(request, ~ltkS)) ) ]
+			
+			lemma Sanity_Reveal_Occurs:
+				exists-trace
+				"Ex Cli #t. LtkReveal(Cli)@t"
+		end
+						</code>
+					</pre>
+				</p>
+				<p>
+					<ul>
+						<li>The server uses it's own long-term key by infering <code>!Ltk($S, ~ltkS)</code>, and recieves an encrypted request from the network with <code>In(request)</code>.</li>
+						<li>The server then outputs the hash of the decrypted message using <code>Out( h(adec(request, ~ltkS)) )</code>. Because the input was encrypted, this works only if the key that encrypted the message corresponds to the private decryption key. Tamarin's library for asymmetric-encryption uses function and equations to make sure these values on comparable. (See section on <a href="#functions">functions</a>).</li>
+						<li>The action fact <code>AnswerRequest($S, adec(request, ~ltkS))</code> annotates that the server is responding to <code>request</code>.</li>
+					</ul>
+				</p>
+				<h3>Security Properties</h3>
+				<p>
+					Let's take a look at some of the security properties for the protocol.
+					In brief, we want to write properties for:
+					<ol>
+						<li>If a client is using a key 'k', then the adversary only knows 'k' if it has been revealed.</li>
+						<li>For all keys 'k' used by clients, a server answered the request or there was a reveal before the key was set up.</li>
+						<li>It is possible for a session to hold without a reveal occuring on the key.</li>
+					</ol>
+				</p>
+				<p>
+					Let's go over each of these step-by-step. <em>Note: when the formal FOL is written, timestamps are ignored to avoid use of temporal logic, which would likely be confusing to include here.</em>
+					<ol>
+						<li>
+							If a client is using a key 'k', then the adversary only knows 'k' if it has been revealed.
+							<ul>
+								<li>If we state this in more structured english, we can say: "In all traces, it is not the case that there is a server and secret such that the adversary knows the secret and a long term reveal has not occurred."</li>
+								<li>Writing this formally, we can use the action facts to say:
+								<math xmlns="http://www.w3.org/1998/Math/MathML"><mo form="prefix" stretchy="false">&#xac;</mo><mo form="prefix" stretchy="false">(</mo><mo>&#x2203;</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo separator="true">,</mo><mtext>&#xa0;</mtext><mi>s</mi><mi>e</mi><mi>c</mi><mtext>&#xa0;</mtext><mo>|</mo><mtext>&#xa0;</mtext><mi>S</mi><mi>e</mi><mi>s</mi><mi>s</mi><mi>K</mi><mi>e</mi><mi>y</mi><mi>C</mi><mo form="prefix" stretchy="false">(</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo separator="true">,</mo><mi>sec</mi><mo form="postfix" stretchy="false">)</mo><mo>&#x2227;</mo><mi>K</mi><mo form="prefix" stretchy="false">(</mo><mi>sec</mi><mo form="postfix" stretchy="false">)</mo><mo>&#x2227;</mo><mo form="prefix" stretchy="false">&#xac;</mo><mo form="prefix" stretchy="false">(</mo><mi>L</mi><mi>t</mi><mi>k</mi><mi>R</mi><mi>e</mi><mi>v</mi><mi>e</mi><mi>a</mi><mi>l</mi><mo form="prefix" stretchy="false">(</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo form="postfix" stretchy="false">)</mo><mo form="postfix" stretchy="false">)</mo><mo form="postfix" stretchy="false">)</mo></math>
+								<em>The <math>K(sec)</math> in the formula is how we denote the adversary's knowledge.</em></li>
+								<li>When we convert this formula to Tamarin, we will write almost the same lemma, but we must also include time stamps on all action facts. In the end, the Tamarin code will look like this: <em>(Note: some of the previous code has been compressed for readability)</em></li>
+							</ul>
+							<p>
+								<pre>
+									<code>
+	theory FirstExample begin
+		builtins: hashing, asymmetric-encryption
+		
+		rule Register_pk:
+			[ Fr(~ltk) ] --> [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+		
+		rule Get_pk:
+			[ !Pk(Owner, pubkey) ] --> [ Out(pubkey) ]
+		
+		rule Reveal_Ltk:
+				[ !Ltk(A, ltk) ] --[ LtkReveal(A) ]-> [ Out(ltk) ]
+		
+		rule C_Step_1:
+			[ Fr(~k), !Pk($S, pks)] --> [ Client_1($S, ~k), Out(aenc(~k, pks) )]
+		
+		rule C_Step_2:
+			[ Client_1(S, k), In( h(k) )] --[ SessKeyC(S, k) ]-> []
+		
+		rule S_Step_1:
+			[ !Ltk($S, ~ltkS), In( request )] --[ AnswerRequest($S, adec(request, ~ltkS)) ]-> [ Out( h(adec(request, ~ltkS)) ) ]
+		
+		lemma Sanity_Reveal_Occurs: exists-trace "Ex Cli #t. LtkReveal(Cli)@t"
+		
++		lemma Client_session_key_secrecy:
++			all-traces
++			"not ( Ex Serv key #i #j.
++				SessKeyC(Serv, key)@i
++				& K(key)@j
++				& not( Ex #r. LtkReveal(Serv)@r )
++			)"
+	end
+									</code>
+								</pre>
+								<ul>
+									<li>Most of the formal sentence translates directly to Tamarin, such as <math><mi>&#x2203;</mi></math> directly to <code>Ex</code>. If timestamps are ignored, it is easy to write the lemmas as FOL, and then translate them into Tamarin, before adding timestamps and time restrictions back in.</li>
+									<li>It is important to note that all Tamarin lemmas must be written in <em>guarded</em> FOL. (See section <a href="#lemmas">Lemmas</a> for additional information.)</li>
+								</ul>
+							</p>
+						</li>
+						<li>For all keys 'k' used by clients, a server answered the request or there was a reveal before the key was set up.
+							<ul>
+								<li>In structured english, we can say: "For all servers and secrets, if they were set up, then there is either a server that answered the request, or the adversary performed a reveal before the setup occured."</li>
+								<li>Formally, we can state:
+								<math xmlns="http://www.w3.org/1998/Math/MathML"><mo>&#x2200;</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo separator="true">,</mo><mi>s</mi><mi>e</mi><mi>c</mi><mtext>&#xa0;</mtext><mo>|</mo><mtext>&#xa0;</mtext><mi>S</mi><mi>e</mi><mi>s</mi><mi>s</mi><mi>K</mi><mi>e</mi><mi>y</mi><mi>C</mi><mo form="prefix" stretchy="false">(</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo separator="true">,</mo><mi>sec</mi><mo form="postfix" stretchy="false">)</mo><mspace width="0.2778em"/><mo stretchy="false">&#x27f9;</mo><mspace width="0.2778em"/><mo form="prefix" stretchy="false">(</mo><mi>A</mi><mi>n</mi><mi>s</mi><mi>w</mi><mi>e</mi><mi>r</mi><mi>R</mi><mi>e</mi><mi>q</mi><mi>u</mi><mi>e</mi><mi>s</mi><mi>t</mi><mo form="prefix" stretchy="false">(</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo separator="true">,</mo><mi>k</mi><mi>e</mi><mi>y</mi><mo form="postfix" stretchy="false">)</mo><mo>&#x2228;</mo><mi>L</mi><mi>t</mi><mi>k</mi><mi>R</mi><mi>e</mi><mi>v</mi><mi>e</mi><mi>a</mi><mi>l</mi><mo form="prefix" stretchy="false">(</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo form="postfix" stretchy="false">)</mo><mo form="postfix" stretchy="false">)</mo></math>
+								</li>
+								<li>In Tamarin, this translates to</li>
+							</ul>
+							<p>
+								<pre>
+									<code>
+	theory FirstExample begin
+		builtins: hashing, asymmetric-encryption
+		
+		rule Register_pk:
+			[ Fr(~ltk) ] --> [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+		
+		rule Get_pk:
+			[ !Pk(Owner, pubkey) ] --> [ Out(pubkey) ]
+		
+		rule Reveal_Ltk:
+				[ !Ltk(A, ltk) ] --[ LtkReveal(A) ]-> [ Out(ltk) ]
+		
+		rule C_Step_1:
+			[ Fr(~k), !Pk($S, pks)] --> [ Client_1($S, ~k), Out(aenc(~k, pks) )]
+		
+		rule C_Step_2:
+			[ Client_1(S, k), In( h(k) )] --[ SessKeyC(S, k) ]-> []
+		
+		rule S_Step_1:
+			[ !Ltk($S, ~ltkS), In( request )] --[ AnswerRequest($S, adec(request, ~ltkS)) ]-> [ Out( h(adec(request, ~ltkS)) ) ]
+		
+		lemma Sanity_Reveal_Occurs: exists-trace "Ex Cli #t. LtkReveal(Cli)@t"
+		
+		lemma Client_session_key_secrecy:
+			all-traces
+			"not ( Ex Serv key #i #j.
+				SessKeyC(Serv, key)@i
+				& K(key)@j
+				& not( Ex #r. LtkReveal(Serv)@r )
+			)"
+			
++		lemma Client_Auth:
++			all-traces
++			"All Serv sec #i. SessKeyC(Serv, sec)@i
++			==> (
++				(Ex #a. AnswerRequest(Serv, sec)@a)
++				|
++				(Ex #r. LtkReveal(Serv)@r & #r<#i)
++			)"
+	end
+									</code>
+								</pre>
+								<ul>
+									<li>Since we ignored the timestamps when writing the FOL, note that we had to add them back by stating the <code>LtkReveal</code> occurs before the session is initiated with <code>#r<#i</code>.</li>
+								</ul>
+							</p>
+						</li>
+						<li>It is possible for a session to hold without a reveal occuring on the key.
+							<ul>
+								<li>In structured English, we can write that "there exists a trace where there exists a session and secret that has been initiated and there does not exist a reveal.</li>
+								<li>Formally, this becomes:
+								<math xmlns="http://www.w3.org/1998/Math/MathML"><mo>&#x2203;</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo separator="true">,</mo><mi>s</mi><mi>e</mi><mi>c</mi><mtext>&#xa0;</mtext><mo>|</mo><mtext>&#xa0;</mtext><mo form="prefix" stretchy="false">(</mo><mi>S</mi><mi>e</mi><mi>s</mi><mi>s</mi><mi>K</mi><mi>e</mi><mi>y</mi><mi>C</mi><mo form="prefix" stretchy="false">(</mo><mi>S</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo separator="true">,</mo><mi>s</mi><mi>e</mi><mi>c</mi><mo form="postfix" stretchy="false">)</mo><mo>&#x2227;</mo><mo form="prefix" stretchy="false">&#xac;</mo><mo form="prefix" stretchy="false">(</mo><mi>L</mi><mi>t</mi><mi>k</mi><mi>R</mi><mi>e</mi><mi>v</mi><mi>e</mi><mi>a</mi><mi>l</mi><mo form="prefix" stretchy="false">(</mo><mi>s</mi><mi>e</mi><mi>r</mi><mi>v</mi><mo form="postfix" stretchy="false">)</mo><mo form="postfix" stretchy="false">)</mo></math>
+								</li>
+								<li>Inputting into tamarin gives us:</li>
+							</ul>
+							<p>
+								<pre>
+									<code>
+	theory FirstExample begin
+		builtins: hashing, asymmetric-encryption
+		
+		rule Register_pk:
+			[ Fr(~ltk) ] --> [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+		
+		rule Get_pk:
+			[ !Pk(Owner, pubkey) ] --> [ Out(pubkey) ]
+		
+		rule Reveal_Ltk:
+				[ !Ltk(A, ltk) ] --[ LtkReveal(A) ]-> [ Out(ltk) ]
+		
+		rule C_Step_1:
+			[ Fr(~k), !Pk($S, pks)] --> [ Client_1($S, ~k), Out(aenc(~k, pks) )]
+		
+		rule C_Step_2:
+			[ Client_1(S, k), In( h(k) )] --[ SessKeyC(S, k) ]-> []
+		
+		rule S_Step_1:
+			[ !Ltk($S, ~ltkS), In( request )] --[ AnswerRequest($S, adec(request, ~ltkS)) ]-> [ Out( h(adec(request, ~ltkS)) ) ]
+		
+		lemma Sanity_Reveal_Occurs: exists-trace "Ex Cli #t. LtkReveal(Cli)@t"
+		
+		lemma Client_session_key_secrecy:
+			all-traces
+			"not ( Ex Serv key #i #j.
+				SessKeyC(Serv, key)@i
+				& K(key)@j
+				& not( Ex #r. LtkReveal(Serv)@r )
+			)"
+			
+		lemma Client_Auth:
+			all-traces
+			"All Serv sec #i. SessKeyC(Serv, sec)@i
+			==> (
+				(Ex #a. AnswerRequest(Serv, sec)@a)
+				|
+				(Ex #r. LtkReveal(Serv)@r & #r<#i)
+			)"
+			
++		lemma Sanity_Session_Occurs:
++			exists-trace
++			"Ex Serv sec #i. (
++				SessKeyC(Serv, sec)@i
++				& not( Ex #r. LtkReveal(Serv)@r )
++			)"
+	end
+									</code>
+								</pre>
+							</p>
+						</li>
+					</ol>
+					<p>
+						After completing these lemmas, let's take a closer look at the results after we automatically prove all of the lemmas in our file.
+						This is the result for the last lemma, <code>Sanity_Session_Occurs</code>:
+						<br><img src="./media/C_Step_1.png" width=25%><br>
+						We can see that for each inference rule, every fact on the left hand side has been sourced back to fresh values.
+						Additionally, Tamarin uses circular nodes to show adversary intervention, and is automatically enabled during verification.
+						For more information on the adversary, see section <a href="#adversary">Adversaries</a>.
+					</p>
+				</p>
+				<h3>Success!</h3>
+				<p>
+					If you got to this point, that means you have successfully run the Tamarin first example.
+					Congratulations!
+					You are now ready to begin proving the security of your own protocols.
+				</p>
+			</div>
+			
+			<!-- Section with language -->
+			<div class="page tamarin">
 				<h2 id="language">The Tamarin Language</h2>
 				<p>
-				Tamarin uses a custom language to describe it's processes.
+				Language guide to come.
+				</p>
+			</div>
+
+			<!-- Section with lemmas -->
+			<div class="page tamarin">
+				<h2 id="lemmas">Lemmas</h2>
+				<p>
+				Lemma guide to come.
+				</p>
+			</div>
+
+			<!-- Section with functions -->
+			<div class="page tamarin">
+				<h2 id="functions">Functions</h2>
+				<p>
+				Function guide to come.
+				</p>
+			</div>
+
+			<!-- Section with oracles -->
+			<div class="page tamarin">
+				<h2 id="oracles">Oracles</h2>
+				<p>
+				Oracle guide to come.
+				</p>
+			</div>
+
+			<!-- Section with macros -->
+			<div class="page tamarin">
+				<h2 id="macros">Macros</h2>
+				<p>
+				Macro guide to come.
 				</p>
 			</div>
 		</div>

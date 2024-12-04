@@ -42,6 +42,6 @@ theory FirstExample begin
 		exists-trace
 		"Ex Serv sec #i. (
 			SessKeyC(Serv, sec)@i
-			& not( Ex #r. LtkReveal(S)@r )
+			& not( Ex #r. LtkReveal(Serv)@r )
 		)"
 end

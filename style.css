@@ -168,6 +168,10 @@ div.pubs tr:hover {
 	background-color: var(--palette-second-light);
 }
 
+div.pubs table {
+	padding-right: 1%;
+}
+
 /* paper recommendation settings */
 div.recc h4 {
 	margin: 0% 0% 0% 1%;
@@ -186,6 +190,20 @@ div.tutorial p{
 	margin: 0% 0% 1% 2%;
 }
 
+div.tamarin h2, h3 {
+	padding-bottom: 0%;
+	padding-top: 1%;
+}
+
+div.tamarin p {
+	margin-top: 0.5%;
+}
+
+div.tamarin pre {
+	margin-top: 0%;
+	margin-bottom: 0%;
+}
+
 /* current research styling */
 div.project p {
 	margin-left: 2%
@@ -197,4 +215,3 @@ div.project h4, h5 {
 
 div.project h5 {
 	font-style: italic;
-}
