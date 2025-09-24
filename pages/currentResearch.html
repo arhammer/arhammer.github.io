@@ -45,12 +45,28 @@
 		
 		<!-- CONTENT OF PAGE -->
 		<div class="nav content">
+
+			<!-- Recovery Work -->
+			<div class="page project">
+				<h2>Computation of the Recoverability of Systems at Design Time</h2>
+				<h4>Andy Hammer, Eunsuk Kang</h4>
+				<h5>model checking, recoverability, computation tree logic</h5>
+				<p>
+				Many software systems are not verified because it is expensive – both financially and temporally – to show a system is 100% correct.
+				Additionally, many systems do not need total correctness; some systems may tolerate property violations as long as they eventually recover.
+				If a property requires that an invariant holds at all times during execution, it may be more important for the system to recover from the invariant violation than for the violation itself to be removed.
+				We analyze systems to compute their recoverability – if an invariant is violated in the system, is it possible to return to a safe state from that violation.
+				Addtionally, we examine different categorizations of recovery; if an invariant is violated multiple times, it may be possible to return to a safe state after some violations, but not others.
+				The actions required to return to safety are also in question, especially if some actions require human intervention to return to safety.
+				A system that can always recover from an invariant violation may be less safe than a completely correct system, but we explore the possibility that it is easier to guarantee recoverability than correctness of a system.
+				</p>
+			</div>
 			
 			<!-- EV Charging Station and Trust Boundry -->
 			<div class="page project">
-				<h2>Trust Boundry and Graceful Degradation of EV Charging Stations</h2>
+				<h2>Trust Boundary and Graceful Degradation of EV Charging Stations</h2>
 				<h4>Vick Dini, Changjian Zhang, Andy Hammer, Ryan Wagner, Eunsuk Kang, David Garlan, Kshitiz Kshitiz, Muhammad Mazaya</h4>
-				<h5>formal verification, electric vehicles, software architecture, graceful degredation, trust boundry</h5>
+				<h5>formal verification, electric vehicles, software architecture, graceful degredation, trust boundary</h5>
 				<p>
 				Unpredictable changes to the environment of a cyber-physical system introduce the potential for unsafe operating conditions.
 				Should components of an architecture be subject to cyber attacks, hardware failures, or adverse environmental conditions, it is important the safety-critical features still be functional to avoid dangerous conditions for users.
@@ -66,7 +82,7 @@
 			</div>
 
 			<!-- MPC with Domains -->
-			<div class="page project">
+			<!--div class="page project">
 				<h2>Verification of Secure Multiparty Computation Deployments with Domain Context</h2>
 				<h4>Andy Hammer, Eunsuk Kang, Fraser Brown</h4>
 				<h5>formal verification, secure multiparty computation</h5>
@@ -79,7 +95,7 @@
 				In this work, we create formal models of different MPC protocols, and include the hardware infrastructure context within the model to identify security vulnerabilities.
 				This allows for identification of security vulnerabilities that exist due to hardware configurations that cannot be reasoned about during cryptographic proofs.
 				</p>
-			</div>
+			</div -->
 		</div>
 	</body>
 </html>
